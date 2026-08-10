@@ -3,6 +3,7 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import gdown
 
 # Configuración de la página en modo ancho
 st.set_page_config(
@@ -14,26 +15,35 @@ st.set_page_config(
 # Clases de tu modelo (asegúrate de que coincidan con el orden de tus carpetas del dataset)
 CLASES = ['Sana / Sin síntomas', 'Roya (Hemileia vastatrix)', 'Cercospora (Mancha de Hierro)', 'Plagas / Minador']
 
-# Función para cargar el modelo guardado
+# Función para descargar y cargar el modelo guardado desde Google Drive
 @st.cache_resource
 def cargar_modelo():
     ruta_modelo = "modelo_hojas_cafe.h5"
-    if os.path.exists(ruta_modelo):
-        modelo = tf.keras.models.load_model(ruta_modelo)
-        return modelo
-    else:
-        return None
+    
+    # Si el archivo no existe localmente, lo descargamos automáticamente de Google Drive
+    if not os.path.exists(ruta_modelo) or os.path.getsize(ruta_modelo) < 1024:
+        # ⚠️ PEGA AQUÍ EL ID DE TU GOOGLE DRIVE ENTRE LAS COMILLAS
+        file_id = "1J8p3vlSS7yCPXCSJxQWJ760hEU8TBCJu"
+        url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        gdown.download(url, ruta_modelo, quiet=False)
+        
+    modelo = tf.keras.models.load_model(ruta_modelo)
+    return modelo
 
-modelo = cargar_modelo()
+# Intentamos cargar el modelo
+try:
+    modelo = cargar_modelo()
+except Exception as e:
+    modelo = None
+    st.error(f"Error al cargar el modelo: {e}")
 
-# Estructura principal en dos columnas (igual al diseño de referencia)
+# Estructura principal en dos columnas
 col_izq, col_der = st.columns([1.1, 1.9], gap="large")
 
 with col_izq:
     st.markdown("### Captura de Imagen Foliar")
     st.caption("Posicione la hoja de café bajo luz natural. El sistema detectará automáticamente signos de roya, cercospora o plagas.")
     
-    # Opciones de carga
     metodo = st.radio("Seleccione método:", ["Subir archivo", "Usar cámara"], horizontal=True)
     
     imagen_cargada = None
@@ -50,18 +60,15 @@ with col_der:
     st.markdown("<p style='text-align: right; color: gray; font-size: 12px;'>ÚLTIMO DIAGNÓSTICO</p>", unsafe_allow_html=True)
     
     if imagen_cargada is not None and modelo is not None:
-        # Preprocesamiento de la imagen para la CNN
         img_resized = imagen.resize((224, 224))
         img_array = np.array(img_resized) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
         
-        # Predicción
         prediccion = modelo.predict(img_array)
         clase_idx = np.argmax(prediccion[0])
         confianza = float(np.max(prediccion[0]) * 100)
         enfermedad = CLASES[clase_idx] if clase_idx < len(CLASES) else "Desconocido"
         
-        # Cabecera de resultados con porcentaje grande a la derecha
         res_col1, res_col2 = st.columns([3, 1])
         with res_col1:
             st.markdown(f"## {enfermedad}")
@@ -71,12 +78,9 @@ with col_der:
             st.markdown("<p style='text-align: right; color: gray; font-size: 10px;'>CONFIANZA</p>", unsafe_allow_html=True)
         
         st.markdown("---")
-        
-        # Bloque de orientación y manejo preventivo (Tarjetas numeradas)
         st.markdown("💡 **ORIENTACIÓN Y MANEJO PREVENTIVO**")
         st.markdown("Aquí tienes una recomendación técnica detallada para manejar la situación:")
         
-        # Tarjetas de recomendaciones basadas en el diagnóstico
         st.markdown("""
         <div style="background-color: #fcfaf7; padding: 15px; border-radius: 8px; border: 1px solid #e0dcd0; margin-bottom: 10px;">
             <b>01. Diferenciación a simple vista</b><br>
@@ -104,8 +108,7 @@ with col_der:
         st.info("👈 Por favor, sube o capture una imagen en el panel izquierdo para ver el diagnóstico y las recomendaciones.")
         
         if modelo is None:
-            st.warning("⚠️ No se encontró el archivo `modelo_hojas_cafe.h5` en el repositorio. Asegúrate de haberlo subido o configurado correctamente.")
+            st.warning("⚠️ No se pudo cargar el modelo. Verifica que el ID de Google Drive sea correcto y que el archivo tenga permisos públicos.")
 
-# Pie de página elegante
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray; font-size: 11px;'>© 2026 AGRODETECT - SOPORTE TÉCNICO</p>", unsafe_allow_html=True)
