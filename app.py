@@ -21,10 +21,10 @@ def cargar_modelo():
     ruta_modelo = "modelo_hojas_cafe.h5"
     file_id = "1J8p3vlSS7yCPXCSJxQWJ760hEU8TBCJu"
     
-    # Si el archivo no existe o es menor a 1MB (lo que indica que se descargó mal o es un HTML), lo volvemos a descargar
+    # Si el archivo no existe o es menor a 1MB, lo descargamos
     if not os.path.exists(ruta_modelo) or os.path.getsize(ruta_modelo) < 1024 * 1024:
         url = f"https://drive.google.com/uc?id={file_id}&export=download&confirm=t"
-        gdown.download(url, ruta_modelo, quiet=False, fuzzy=True)
+        gdown.download(url, ruta_modelo, quiet=False)
         
     modelo = tf.keras.models.load_model(ruta_modelo)
     return modelo
@@ -108,6 +108,3 @@ with col_der:
         
         if modelo is None:
             st.warning("⚠️ No se pudo cargar el modelo. Verifica que el archivo en Google Drive esté configurado como 'Cualquier usuario con el enlace' (Lector).")
-
-st.markdown("---")
-st.markdown("<p style='text-align: center; color: gray; font-size: 11px;'>© 2026 AGRODETECT - SOPORTE TÉCNICO</p>", unsafe_allow_html=True)
