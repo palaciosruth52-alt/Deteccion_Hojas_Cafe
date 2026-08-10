@@ -15,13 +15,13 @@ st.set_page_config(
 # Clases de tu modelo (coinciden con el orden de tus carpetas del dataset)
 CLASES = ['Sana / Sin síntomas', 'Roya (Hemileia vastatrix)', 'Cercospora (Mancha de Hierro)', 'Plagas / Minador']
 
-# Función robusta para descargar y cargar el modelo desde Google Drive
+# Función robusta para descargar y cargar el modelo desde Google Drive sin argumentos obsoletos
 @st.cache_resource
 def cargar_modelo():
     ruta_modelo = "modelo_hojas_cafe.h5"
     file_id = "1J8p3vlSS7yCPXCSJxQWJ760hEU8TBCJu"
     
-    # Si el archivo no existe o es menor a 1MB, lo descargamos
+    # Si el archivo no existe o pesa menos de 1MB, lo descargamos correctamente
     if not os.path.exists(ruta_modelo) or os.path.getsize(ruta_modelo) < 1024 * 1024:
         url = f"https://drive.google.com/uc?id={file_id}&export=download&confirm=t"
         gdown.download(url, ruta_modelo, quiet=False)
