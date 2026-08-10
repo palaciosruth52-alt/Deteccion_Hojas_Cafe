@@ -1,8 +1,0 @@
-{
-    "proyecto": "Detección de Enfermedades en Hojas de Café con CNN",
-    "clases": [
-        "Dataset"
-    ],
-    "epochs": 5,
-    "framework": "TensorFlow / Keras"
-}
