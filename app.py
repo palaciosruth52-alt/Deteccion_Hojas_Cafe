@@ -12,25 +12,24 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Clases de tu modelo (asegúrate de que coincidan con el orden de tus carpetas del dataset)
+# Clases de tu modelo (coinciden con el orden de tus carpetas del dataset)
 CLASES = ['Sana / Sin síntomas', 'Roya (Hemileia vastatrix)', 'Cercospora (Mancha de Hierro)', 'Plagas / Minador']
 
-# Función para descargar y cargar el modelo guardado desde Google Drive
+# Función robusta para descargar y cargar el modelo desde Google Drive
 @st.cache_resource
 def cargar_modelo():
     ruta_modelo = "modelo_hojas_cafe.h5"
+    file_id = "1J8p3vlSS7yCPXCSJxQWJ760hEU8TBCJu"
     
-    # Si el archivo no existe localmente, lo descargamos automáticamente de Google Drive
-    if not os.path.exists(ruta_modelo) or os.path.getsize(ruta_modelo) < 1024:
-        # ⚠️ PEGA AQUÍ EL ID DE TU GOOGLE DRIVE ENTRE LAS COMILLAS
-        file_id = "1J8p3vlSS7yCPXCSJxQWJ760hEU8TBCJu"
-        url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        gdown.download(url, ruta_modelo, quiet=False)
+    # Si el archivo no existe o es menor a 1MB (lo que indica que se descargó mal o es un HTML), lo volvemos a descargar
+    if not os.path.exists(ruta_modelo) or os.path.getsize(ruta_modelo) < 1024 * 1024:
+        url = f"https://drive.google.com/uc?id={file_id}&export=download&confirm=t"
+        gdown.download(url, ruta_modelo, quiet=False, fuzzy=True)
         
     modelo = tf.keras.models.load_model(ruta_modelo)
     return modelo
 
-# Intentamos cargar el modelo
+# Intentamos cargar el modelo de forma segura
 try:
     modelo = cargar_modelo()
 except Exception as e:
@@ -91,8 +90,8 @@ with col_der:
             <span style="font-size: 14px; color: #4a4a4a;">Regular sombra al 40-50% para reducir estrés hídrico. Aplicar caldos minerales preventivos antes de temporadas de alta humedad y evitar exceso de follaje húmedo.</span>
         </div>
         <div style="background-color: #fcfaf7; padding: 15px; border-radius: 8px; border: 1px solid #e0dcd0; margin-bottom: 10px;">
-            <b>03. Consulta a un técnico IHCAFE</b><br>
-            <span style="font-size: 14px; color: #4a4a4a;">Consulte si las afecciones superan el 30% del follaje total. Un técnico evaluará niveles de Nitrógeno y Potasio en suelo para descartar problemas nutricionales primarios.</span>
+            <b>03. Consulta a un técnico especializado</b><br>
+            <span style="font-size: 14px; color: #4a4a4a;">Consulte si las afecciones superan el 30% del follaje total. Un técnico evaluará niveles nutricionales en suelo para descartar problemas primarios.</span>
         </div>
         <div style="background-color: #fcfaf7; padding: 15px; border-radius: 8px; border: 1px solid #e0dcd0; margin-bottom: 10px;">
             <b>04. Monitoreo y seguimiento</b><br>
@@ -108,7 +107,7 @@ with col_der:
         st.info("👈 Por favor, sube o capture una imagen en el panel izquierdo para ver el diagnóstico y las recomendaciones.")
         
         if modelo is None:
-            st.warning("⚠️ No se pudo cargar el modelo. Verifica que el ID de Google Drive sea correcto y que el archivo tenga permisos públicos.")
+            st.warning("⚠️ No se pudo cargar el modelo. Verifica que el archivo en Google Drive esté configurado como 'Cualquier usuario con el enlace' (Lector).")
 
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray; font-size: 11px;'>© 2026 AGRODETECT - SOPORTE TÉCNICO</p>", unsafe_allow_html=True)
