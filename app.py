@@ -11,14 +11,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Clases de tu modelo (coinciden con el orden de tus carpetas del dataset)
-# Reemplaza esto con el orden exacto que arrojó Colab
-CLASES = [
-    'Cercospora (Mancha de Hierro)', 
-    'Plagas / Minador', 
-    'Roya (Hemileia vastatrix)', 
-    'Sana / Sin síntomas'
-]
+# Clases de tu modelo (asegúrate de que coincidan con el orden alfabético de tu entrenamiento en Colab)
+CLASES = ['Cercospora (Mancha de Hierro)', 'Plagas / Minador', 'Roya (Hemileia vastatrix)', 'Sana / Sin síntomas']
 
 # Cargar el modelo ligero TFLite directamente desde GitHub
 @st.cache_resource
@@ -67,10 +61,10 @@ with col_der:
         
         interpreter.set_tensor(input_details[0]['index'], img_array)
         interpreter.invoke()
-        prediccion = interpreter.get_tensor(output_details[0]['index'])
+        prediccion = interpreter.get_tensor(output_details[0]['index'])[0]
         
-        clase_idx = np.argmax(prediccion[0])
-        confianza = float(np.max(prediccion[0]) * 100)
+        clase_idx = np.argmax(prediccion)
+        confianza = float(prediccion[clase_idx] * 100)
         enfermedad = CLASES[clase_idx] if clase_idx < len(CLASES) else "Desconocido"
         
         res_col1, res_col2 = st.columns([3, 1])
@@ -78,8 +72,14 @@ with col_der:
             st.markdown(f"## {enfermedad}")
             st.caption("Diagnóstico procesado por red neuronal optimizada (TFLite).")
         with res_col2:
-            st.markdown(f"<h1 style='text-align: right; color: #2e7d32;'>{confianza:.1f}%</h1>", unsafe_allow_html=True)
+            color_conf = "#d32f2f" if confianza < 70 and "Sana" not in enfermedad else "#2e7d32"
+            st.markdown(f"<h1 style='text-align: right; color: {color_conf};'>{confianza:.1f}%</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: right; color: gray; font-size: 10px;'>CONFIANZA</p>", unsafe_allow_html=True)
+        
+        # Mostrar desglose completo de probabilidades para depurar si el modelo duda
+        with st.expander("📊 Ver desglose detallado de probabilidades por clase"):
+            for i, prob in enumerate(prediccion):
+                st.progress(float(prob), text=f"{CLASES[i]}: {prob*100:.2f}%")
         
         st.markdown("---")
         st.markdown("💡 **ORIENTACIÓN Y MANEJO PREVENTIVO**")
@@ -113,3 +113,6 @@ with col_der:
         
         if interpreter is None:
             st.warning("⚠️ No se encontró el archivo `modelo_hojas_cafe.tflite` en el repositorio de GitHub. Sube tu archivo `.tflite` para continuar.")
+
+st.markdown("---")
+st.markdown("<p style='text-align: center; color: gray; font-size: 11px;'>© 2026 AGRODETECT - SOPORTE TÉCNICO</p>", unsafe_allow_html=True)
