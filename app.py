@@ -18,7 +18,7 @@ CLASES = ['Sana / Sin síntomas', 'Roya (Hemileia vastatrix)', 'Cercospora (Manc
 # Cargar el modelo entrenado
 @st.cache_resource
 def cargar_modelo():
-    modelo = tf.keras.models.load_model('modelo_hojas_cafe(1).h5')
+    modelo = tf.keras.models.load_model('modelo_hojas_cafe.h5')
     return modelo
 
 try:
