@@ -12,7 +12,13 @@ st.set_page_config(
 )
 
 # Clases de tu modelo (coinciden con el orden de tus carpetas del dataset)
-CLASES = ['Sana / Sin síntomas', 'Roya (Hemileia vastatrix)', 'Cercospora (Mancha de Hierro)', 'Plagas / Minador']
+# Reemplaza esto con el orden exacto que arrojó Colab
+CLASES = [
+    'Cercospora (Mancha de Hierro)', 
+    'Plagas / Minador', 
+    'Roya (Hemileia vastatrix)', 
+    'Sana / Sin síntomas'
+]
 
 # Cargar el modelo ligero TFLite directamente desde GitHub
 @st.cache_resource
