@@ -3,7 +3,6 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-import gdown
 
 # Configuración de la página en modo ancho
 st.set_page_config(
@@ -15,26 +14,18 @@ st.set_page_config(
 # Clases de tu modelo (coinciden con el orden de tus carpetas del dataset)
 CLASES = ['Sana / Sin síntomas', 'Roya (Hemileia vastatrix)', 'Cercospora (Mancha de Hierro)', 'Plagas / Minador']
 
-# Función robusta para descargar y cargar el modelo desde Google Drive sin argumentos obsoletos
+# Cargar el modelo ligero TFLite directamente desde GitHub
 @st.cache_resource
-def cargar_modelo():
-    ruta_modelo = "modelo_hojas_cafe.h5"
-    file_id = "1J8p3vlSS7yCPXCSJxQWJ760hEU8TBCJu"
-    
-    # Si el archivo no existe o pesa menos de 1MB, lo descargamos correctamente
-    if not os.path.exists(ruta_modelo) or os.path.getsize(ruta_modelo) < 1024 * 1024:
-        url = f"https://drive.google.com/uc?id={file_id}&export=download&confirm=t"
-        gdown.download(url, ruta_modelo, quiet=False)
-        
-    modelo = tf.keras.models.load_model(ruta_modelo)
-    return modelo
+def cargar_modelo_tflite():
+    ruta_modelo = "modelo_hojas_cafe.tflite"
+    if os.path.exists(ruta_modelo):
+        interpreter = tf.lite.Interpreter(model_path=ruta_modelo)
+        interpreter.allocate_tensors()
+        return interpreter
+    else:
+        return None
 
-# Intentamos cargar el modelo de forma segura
-try:
-    modelo = cargar_modelo()
-except Exception as e:
-    modelo = None
-    st.error(f"Error al cargar el modelo: {e}")
+interpreter = cargar_modelo_tflite()
 
 # Estructura principal en dos columnas
 col_izq, col_der = st.columns([1.1, 1.9], gap="large")
@@ -58,12 +49,20 @@ with col_izq:
 with col_der:
     st.markdown("<p style='text-align: right; color: gray; font-size: 12px;'>ÚLTIMO DIAGNÓSTICO</p>", unsafe_allow_html=True)
     
-    if imagen_cargada is not None and modelo is not None:
+    if imagen_cargada is not None and interpreter is not None:
+        # Preprocesamiento de la imagen
         img_resized = imagen.resize((224, 224))
-        img_array = np.array(img_resized) / 255.0
+        img_array = np.array(img_resized, dtype=np.float32) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
         
-        prediccion = modelo.predict(img_array)
+        # Predicción usando TFLite Interpreter
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+        
+        interpreter.set_tensor(input_details[0]['index'], img_array)
+        interpreter.invoke()
+        prediccion = interpreter.get_tensor(output_details[0]['index'])
+        
         clase_idx = np.argmax(prediccion[0])
         confianza = float(np.max(prediccion[0]) * 100)
         enfermedad = CLASES[clase_idx] if clase_idx < len(CLASES) else "Desconocido"
@@ -71,7 +70,7 @@ with col_der:
         res_col1, res_col2 = st.columns([3, 1])
         with res_col1:
             st.markdown(f"## {enfermedad}")
-            st.caption("Diagnóstico procesado por red neuronal convolucional.")
+            st.caption("Diagnóstico procesado por red neuronal optimizada (TFLite).")
         with res_col2:
             st.markdown(f"<h1 style='text-align: right; color: #2e7d32;'>{confianza:.1f}%</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: right; color: gray; font-size: 10px;'>CONFIANZA</p>", unsafe_allow_html=True)
@@ -106,5 +105,5 @@ with col_der:
     else:
         st.info("👈 Por favor, sube o capture una imagen en el panel izquierdo para ver el diagnóstico y las recomendaciones.")
         
-        if modelo is None:
-            st.warning("⚠️ No se pudo cargar el modelo. Verifica que el archivo en Google Drive esté configurado como 'Cualquier usuario con el enlace' (Lector).")
+        if interpreter is None:
+            st.warning("⚠️ No se encontró el archivo `modelo_hojas_cafe.tflite` en el repositorio de GitHub. Sube tu archivo `.tflite` para continuar.")
